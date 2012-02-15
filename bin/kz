@@ -21,7 +21,7 @@
 #
 #
 """
-kz = start-up script for the kotlin compiler
+kz - use the kotlin compiler with ease
 
 usage: kz [OPTIONS]  src-dir || file.kt
 
@@ -54,10 +54,10 @@ options:
 """
 #_________________________________________________________________________
 
-import sys
 import os
+import sys
 import time
-import getopt
+import tempfile
 import traceback
 import subprocess
 
@@ -71,23 +71,22 @@ defaults['-version']  = False
 defaults['-dryrun']   = False
 defaults['-quiet']    = False
 defaults['-jar']      = None
-defaults['-output']   = "a.out"
+defaults['-output']   = "a.sh"
 defaults['src']       = "src"
 defaults['libkotlin'] = list()
 defaults['java']      = None
 defaults['CLASSPATH'] = None
 
+shellstub ="""
+#!/bin/sh
+
+exec java -jar $0 "$@"
+            
+
+
+"""
+
 #_________________________________________________________________________
-
-def niceopt(argv, short_opts, long_opts):
-    """ allow long options which start with a single '-' sign"""
-    for i, e in enumerate(argv):
-        for opt in long_opts:
-            if( e.startswith("-" + opt) or
-              ( e.startswith("-" + opt[:-1]) and opt[-1] == "=") ):
-                argv[i] = "-" + e
-    return getopt.getopt(argv, short_opts, long_opts)
-
 
 def die(fmt, *args):
     """ print something to stderr and exit(1) """
@@ -145,33 +144,6 @@ def sanity():
 
 
 def parse_argv(argv):
-
-    short_opts = "hvqo:j:"
-    long_opts  = ['help','version','quiet','includeRuntime','output=','stdlib=','jar=','src=','module=']
-
-    try:
-        (opts, args) = niceopt(argv, short_opts, long_opts)
-    except getopt.GetoptError, inst:
-        traceback.print_exc(inst)
-        sys.exit(1)
-
-    # ignore: stdlib includeRuntime src module
-    for o, a in opts:
-        if o in ('-h', '--help'):    print(__doc__); sys.exit(0)
-        if o in ('-v', '--version'): print(__version__); sys.exit(0)
-        if o in ('-o', '--output'):  defaults['-output'] = a
-        if o in ('-j', '--jar'):     defaults['-jar']    = a
-        if o in ('-d', '--dryrun'):  defaults['-dryrun'] = True
-
-    if args:
-        defaults['src'] = args[0]
-    elif os.path.isdir("src"):
-        defaults['src'] = "src"
-    else:
-        sys.stderr.write("usage: kz [OPTIONS] src-dir || file.kt\n")
-        sys.exit(1)
-
-def parse_argv2(argv):
     """
     parse input arguments and 'eat' options which kz
     already gives to the kotlin compiler, or makes no sense
@@ -207,23 +179,55 @@ def parse_argv2(argv):
         die("usage: kz [OPTIONS] src-dir || file.kt\n")
 
 
+def print_dryrun(cmd):
+    """
+    print a somewhat readable version of what this script does
+    unlike this function which is unreadable :-)
+    """
+    say = sys.stdout.write
+    say("\n[1]\n\n" + cmd[0] + "\\\n   " + cmd[1] + "\\\n")
+    for f in defaults['libkotlin']:
+        say("       " + f + ":\\\n")
+    for i in range(3, 8):
+        say("   " + cmd[i] + "\\\n")
+    say("     " + cmd[8] + "\n")
+    if not defaults['-jar']:
+        say("\n[2]\n\necho '" + shellstub)
+        say("'> %s\n"%(defaults['-output']))
+        say("\n[3]\n\ncat %s >> %s\n\n"%(cmd[6],defaults['-output']))
+        say("\n[4]\n\nchmod a+rx %s\n\n"%(defaults['-output']))
+
+
 def kotlin_compile():
     """ compile kotlin source using the KotlinCompiler"""
 
-    if defaults['-jar']:
-        cmd = []
-        cmd.append(defaults['java'])
-        cmd.append("-cp")
-        cmd.append(defaults['CLASSPATH'])
-        cmd.append("org.jetbrains.jet.cli.KotlinCompiler")
-        cmd.append("-includeRuntime")
-        cmd.append("-jar")
-        cmd.append(defaults['-jar'])
-        cmd.append("-src")
-        cmd.append(defaults['src'])
-        fail = subprocess.call(cmd, stdout=sys.stdout, stderr=sys.stderr)
+    jarfile = defaults['-jar']
+    if not jarfile: _, jarfile = tempfile.mkstemp(suffix='.jar')
+
+    cmd = []
+    cmd.append(defaults['java'])
+    cmd.append("-cp")
+    cmd.append(defaults['CLASSPATH'])
+    cmd.append("org.jetbrains.jet.cli.KotlinCompiler")
+    cmd.append("-includeRuntime")
+    cmd.append("-jar")
+    cmd.append(jarfile)
+    cmd.append("-src")
+    cmd.append(defaults['src'])
+    if defaults['-dryrun']:
+        print_dryrun(cmd);  return 1
+    fail = subprocess.call(cmd, stdout=sys.stdout, stderr=sys.stderr)
+    if not fail or defaults['-jar']:
+        fh_shell = open(defaults['-output'], 'w+b')
+        fh_shell.write(shellstub)
+        fh_jar   = open(jarfile, 'r')
+        fh_shell.write(fh_jar.read())
+        fh_shell.close()
+        fh_jar.close()
+        os.chmod(defaults['-output'], 0755)
+        return 0
+    else:
         return fail
-    return 0
 
 
 #_________________________________________________________________________
@@ -364,10 +368,10 @@ if __name__ == '__main__':
     t0 = time.time()
 
     sanity()
-    parse_argv2(sys.argv[1:])
+    parse_argv(sys.argv[1:])
     fail = kotlin_compile()
 
     if fail: sys.exit(fail)
 
-    if not defaults['-quiet']:
+    if not defaults['-quiet'] or defaults['-dryrun']:
         sys.stdout.write("built in %.1f s\n"%(time.time() - t0))
