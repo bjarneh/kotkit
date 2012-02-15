@@ -1,0 +1,373 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+#_________________________________________________________________________
+#
+#  Copyright © 2012 bjarneh
+#
+#  This program is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#_________________________________________________________________________
+#
+#
+"""
+kz = start-up script for the kotlin compiler
+
+usage: kz [OPTIONS]  src-dir || file.kt
+
+it will produce an exacutable shell script which
+contains a jar archive with the kotlin runtime
+included. i.e. if all goes well you should be
+able to run your program by running the produced
+shell script.
+
+variable KOTLIN_GITROOT must be set to point
+at the root directory of kotlin, i.e.
+
+$ git checkout https://github.com/JetBrains/kotlin.git
+$ export KOTLIN_GITROOT=$PWD/kotlin
+
+# build kotlin if you haven't already
+$ ant -f update_dependencies.xml && ant -f build.xml
+
+that's it, you should be ready to go
+
+
+options:
+
+    -h --help       : print this menu and exit
+    -v --version    : print version and exit
+    -q --quiet      : do not report time used etc..
+    -j --jar        : create jar file (!shell script)
+    -o --output     : name of output (default:a.sh)
+    -d --dryrun     : print what kz would do to stdout
+"""
+#_________________________________________________________________________
+
+import sys
+import os
+import time
+import getopt
+import traceback
+import subprocess
+
+__version__    = "kz 1.0"
+__author__     = "bjarneh@ifi.uio.no"
+
+# globals
+defaults = dict()
+defaults['-help']     = False
+defaults['-version']  = False
+defaults['-dryrun']   = False
+defaults['-quiet']    = False
+defaults['-jar']      = None
+defaults['-output']   = "a.out"
+defaults['src']       = "src"
+defaults['libkotlin'] = list()
+defaults['java']      = None
+defaults['CLASSPATH'] = None
+
+#_________________________________________________________________________
+
+def niceopt(argv, short_opts, long_opts):
+    """ allow long options which start with a single '-' sign"""
+    for i, e in enumerate(argv):
+        for opt in long_opts:
+            if( e.startswith("-" + opt) or
+              ( e.startswith("-" + opt[:-1]) and opt[-1] == "=") ):
+                argv[i] = "-" + e
+    return getopt.getopt(argv, short_opts, long_opts)
+
+
+def die(fmt, *args):
+    """ print something to stderr and exit(1) """
+    if args:
+        sys.stderr.write(fmt%(args))
+    else:
+        sys.stderr.write("%s"%(fmt))
+    sys.exit(1)
+
+
+def which(executable):
+    """ checks whether the executable can be found in PATH variable"""
+    # executable already contains a path.
+    if os.path.dirname(executable) != '':
+        if os.access (executable, os.X_OK):
+            return executable
+
+    if not os.environ.has_key('PATH') or os.environ['PATH'] == '':
+        p = os.defpath
+    else:
+        p = os.environ['PATH']
+
+    pathlist = p.split(os.pathsep)
+
+    for path in pathlist:
+        f = os.path.join(path, executable)
+        if os.access(f, os.X_OK):
+            return f
+    return None
+
+
+def sanity():
+    """
+    check that java is installed and that KOTLIN_GITROOT exists.
+    collect the paths to libraries in KOTLIN_GITROOT/dist/kotlinc/lib/*
+    to be included as CLASSPATH members when invoking the KotlinCompiler
+    """
+
+    defaults['java'] = which("java")
+    if not defaults['java']:
+        die("[ERROR] could not find java on your system\n")
+
+    kotlin_gitroot = os.environ['KOTLIN_GITROOT']
+    if not kotlin_gitroot:
+        die("[ERROR] variable KOTLIN_GITROOT is not set\n")
+
+    libpath = os.path.join(kotlin_gitroot, "dist", "kotlinc", "lib")
+    if not os.path.isdir(libpath):
+        die("[ERROR] kotlin libraries not found (%s not a directory)\n"%(libpath))
+    else:
+        libs = os.listdir(libpath)
+        for l in libs:
+            defaults['libkotlin'].append(os.path.join(libpath, l))
+        defaults['CLASSPATH'] = ':'.join(defaults['libkotlin'])
+
+
+def parse_argv(argv):
+
+    short_opts = "hvqo:j:"
+    long_opts  = ['help','version','quiet','includeRuntime','output=','stdlib=','jar=','src=','module=']
+
+    try:
+        (opts, args) = niceopt(argv, short_opts, long_opts)
+    except getopt.GetoptError, inst:
+        traceback.print_exc(inst)
+        sys.exit(1)
+
+    # ignore: stdlib includeRuntime src module
+    for o, a in opts:
+        if o in ('-h', '--help'):    print(__doc__); sys.exit(0)
+        if o in ('-v', '--version'): print(__version__); sys.exit(0)
+        if o in ('-o', '--output'):  defaults['-output'] = a
+        if o in ('-j', '--jar'):     defaults['-jar']    = a
+        if o in ('-d', '--dryrun'):  defaults['-dryrun'] = True
+
+    if args:
+        defaults['src'] = args[0]
+    elif os.path.isdir("src"):
+        defaults['src'] = "src"
+    else:
+        sys.stderr.write("usage: kz [OPTIONS] src-dir || file.kt\n")
+        sys.exit(1)
+
+def parse_argv2(argv):
+    """
+    parse input arguments and 'eat' options which kz
+    already gives to the kotlin compiler, or makes no sense
+    """
+    p = Pyopt()
+    ## bool options
+    p.add_bool("-h -help --help help")
+    p.add_bool("-v -version --version version")
+    p.add_bool("-d -dryrun --dryrun dryrun")
+    p.add_bool("-q -quiet --quiet quiet")
+    ## string options
+    p.add_str_fancy("-j --jar")
+    p.add_str_fancy("-o --output")
+    ## to avoid multiple identical flags these are 'ignored'
+    p.add_str("-src")
+    p.add_str("-module")
+    p.add_str("-stdlib")
+    p.add_str("-includeRuntime")
+
+    args = p.parse(argv)
+
+    if p.is_set("-help"):    print(__doc__); sys.exit(0)
+    if p.is_set("-version"): print(__version__); sys.exit(0)
+    if p.is_set("-output"):  defaults['-output'] = p.get("-output")
+    if p.is_set("-jar"):     defaults['-jar']    = p.get("-jar")
+    if p.is_set("-dryrun"):  defaults['-dryrun'] = True
+
+    if args:
+        defaults['src'] = args[0]
+    elif os.path.isdir("src"):
+        defaults['src'] = "src"
+    else:
+        die("usage: kz [OPTIONS] src-dir || file.kt\n")
+
+
+def kotlin_compile():
+    """ compile kotlin source using the KotlinCompiler"""
+
+    if defaults['-jar']:
+        cmd = []
+        cmd.append(defaults['java'])
+        cmd.append("-cp")
+        cmd.append(defaults['CLASSPATH'])
+        cmd.append("org.jetbrains.jet.cli.KotlinCompiler")
+        cmd.append("-includeRuntime")
+        cmd.append("-jar")
+        cmd.append(defaults['-jar'])
+        cmd.append("-src")
+        cmd.append(defaults['src'])
+        fail = subprocess.call(cmd, stdout=sys.stdout, stderr=sys.stderr)
+        return fail
+    return 0
+
+
+#_________________________________________________________________________
+
+# getopt   - cannot parse arguments mixed with options
+# optparse - very complex and shitty library IMO
+
+class Option(object):
+    """ base class for BoolOption and StrOption"""
+    def __init__(self, flags):
+        self.flags = flags
+
+class BoolOption(Option):
+    """ boolean flag, defaults to false """
+    def __init__(self, flags):
+        super(BoolOption, self).__init__(flags)
+        self.found = False
+
+    def is_set(self):
+        return self.found
+
+class StrOption(Option):
+    """ str options represents all non-bool flags """
+    def __init__(self, flags):
+        super(StrOption, self).__init__(flags)
+        self.args = []
+
+    def is_set(self):
+        return len(self.args) > 0
+    
+    def add(self, arg):
+        self.args.append(arg)
+    
+    def get(self):
+        return self.args[0]
+
+
+class Pyopt(object):
+    """ simple command line parser """
+    def __init__(self):
+        self.options = {}
+
+    def add_bool(self, flag_str):
+        flags = flag_str.split()
+        b = BoolOption(flags)
+        for f in flags:
+            self.options[f] = b
+
+    def add_str(self, flag_str):
+        flags = flag_str.split()
+        s = StrOption(flags)
+        for f in flags:
+            self.options[f] = s
+
+    def add_str_fancy(self, flag_str):
+        fancy = self.make_fancy(flag_str)
+        s = StrOption(fancy)
+        for f in fancy:
+            self.options[f] = s
+
+    def make_fancy(self, flag_str):
+        flags = flag_str.split()
+        fancy_flags = []
+        for f in flags:
+            if f.startswith("--"):
+                fancy_flags.append(f[1:])
+                fancy_flags.append(f[1:] + "=")
+                fancy_flags.append(f)
+                fancy_flags.append(f + "=")
+            elif f.startswith("-"):
+                fancy_flags.append(f)
+                fancy_flags.append(f + "=")
+            else:
+                fancy_flags.append(f)
+        return fancy_flags
+
+
+    def is_set(self, flag):
+        return self.options[flag].is_set()
+    
+    def get(self, flag):
+        return self.options[flag].get()
+
+    def is_option(self, opt):
+        return opt in self.options.keys()
+
+    def parse(self, argv):
+        rest = []
+        while argv:
+            a = argv[0]
+            argv = argv[1:]
+            if self.is_option(a):
+                if type(self.options[a]) == BoolOption:
+                    self.options[a].found = True
+                else:
+                    if not argv:
+                        die("missing argument for: %s\n", a)
+                    else:
+                        x = argv[0]
+                        argv = argv[1:]
+                        self.options[a].add(x)
+            else:
+                if (not self.juxta_bool(a)) and (not self.juxta_str(a)):
+                    rest.append(a)
+        return rest
+
+    def juxta_bool(self, arg):
+        if len(arg) > 2:
+            single = list(arg[1:])
+            for a in single:
+                if not self.is_option("-"+a):
+                    return False
+            # set them all
+            for a in single:
+                self.options["-"+a].found = True
+            return True
+        else:
+            return False
+
+    def juxta_str(self, arg):
+        max = 0
+        tmp = ""
+        for k in self.options.keys():
+            if arg.startswith(k):
+                if type(self.options[k]) == StrOption:
+                    if len(k) > max:
+                        max = len(k)
+                        tmp = k
+        if max > 0:
+            self.options[tmp].add(arg[len(tmp):])
+            return True
+        return False
+
+#_____________________________________________________________________________
+
+if __name__ == '__main__':
+
+    t0 = time.time()
+
+    sanity()
+    parse_argv2(sys.argv[1:])
+    fail = kotlin_compile()
+
+    if fail: sys.exit(fail)
+
+    if not defaults['-quiet']:
+        sys.stdout.write("built in %.1f s\n"%(time.time() - t0))
