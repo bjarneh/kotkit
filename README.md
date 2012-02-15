@@ -1,7 +1,6 @@
 
     · K O T K I T ·
 
-### What
 
 This repo contains a small starter-kit for those who want to try out
 the [Kotlin][1] language without the [Intellij IDE][2].
