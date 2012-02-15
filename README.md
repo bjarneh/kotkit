@@ -32,14 +32,41 @@ time you log in (**.profile** or **.bashrc** etc..)
 
 #### Example
 
+Compiling a single file
+
     $ cat Main.kt
 
      fun main(args: Array<String>){
-             println("hello world!")
+         println("hello world!")
      }
 
     $ kz Main.kz -o program
       built in 4.0 s
+
+    $ ./program
+      hello world!
+
+
+Compiling a project with multiple files
+
+    $ ls src/
+    Hello.kt  Main.kt
+
+    $ cat src/Main.kt
+
+    fun main(args: Array<String>){
+        val h = Hello("world!")
+        h.say()
+    }
+
+    $ cat src/Hello.kt
+
+    class Hello(val whom: String){
+        fun say():Unit = println("hello $whom")
+    }
+
+    $ kz -o program src/
+      built in 4.4 s
 
     $ ./program
       hello world!
