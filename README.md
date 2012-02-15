@@ -39,7 +39,7 @@ Compiling a single file
          println("hello world!")
      }
 
-    $ kz Main.kz -o program
+    $ kz Main.kt -o program
       built in 4.0 s
 
     $ ./program
