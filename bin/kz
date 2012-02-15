@@ -170,6 +170,7 @@ def parse_argv(argv):
     if p.is_set("-output"):  defaults['-output'] = p.get("-output")
     if p.is_set("-jar"):     defaults['-jar']    = p.get("-jar")
     if p.is_set("-dryrun"):  defaults['-dryrun'] = True
+    if p.is_set("-quiet"):   defaults['-quiet']  = True
 
     if args:
         defaults['src'] = args[0]
@@ -217,13 +218,14 @@ def kotlin_compile():
     if defaults['-dryrun']:
         print_dryrun(cmd);  return 1
     fail = subprocess.call(cmd, stdout=sys.stdout, stderr=sys.stderr)
-    if not fail or defaults['-jar']:
+    if not fail and (not defaults['-jar']):
         fh_shell = open(defaults['-output'], 'w+b')
         fh_shell.write(shellstub)
         fh_jar   = open(jarfile, 'r')
         fh_shell.write(fh_jar.read())
         fh_shell.close()
         fh_jar.close()
+        os.unlink(jarfile)
         os.chmod(defaults['-output'], 0755)
         return 0
     else:
@@ -373,5 +375,5 @@ if __name__ == '__main__':
 
     if fail: sys.exit(fail)
 
-    if not defaults['-quiet'] or defaults['-dryrun']:
+    if not defaults['-quiet'] and (not defaults['-dryrun']):
         sys.stdout.write("built in %.1f s\n"%(time.time() - t0))
