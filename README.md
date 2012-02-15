@@ -29,6 +29,13 @@ should do the trick.
 This variable could typically be set inside a file which is read each
 time you log in (**.profile** or **.bashrc** etc..)
 
+#### kz
+
+In order to use the Python script **kz** to help you compile kotlin, 
+it must be located somewhere it can be found; i.e. in one of the 
+directories pointed to by the `$PATH` variable typically.
+
+
 #### Example
 
 Compiling a single file
