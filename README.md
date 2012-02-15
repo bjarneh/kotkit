@@ -71,6 +71,9 @@ Compiling a project with multiple files
     $ ./program
       hello world!
 
+If source is place inside a directory named `src` as in the example,
+the `src` can be omitted, this is the default location.
+
 
 #### Highlight Vim
 
