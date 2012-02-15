@@ -62,7 +62,7 @@ Compiling a project with multiple files
     $ cat src/Hello.kt
 
     class Hello(val whom: String){
-        fun say():Unit = println("hello $whom")
+        fun say() = println("hello $whom")
     }
 
     $ kz -o program src/
