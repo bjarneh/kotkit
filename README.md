@@ -66,8 +66,7 @@ Compiling a project with multiple files
     $ cat src/Main.kt
 
     fun main(args: Array<String>){
-        val h = Hello("world!")
-        h.say()
+        Hello("world!").say()
     }
 
     $ cat src/Hello.kt
