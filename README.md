@@ -9,8 +9,6 @@ found inside the **misc** directory. And a script that helps you
 build executables can be found inside the **bin** directory.
 
 
-### Howto
-
 #### Compile
 
 Compilation requires that the kotlin compiler has been installed
@@ -81,7 +79,7 @@ If source is place inside a directory named `src` as in the example,
 the `src` can be omitted, this is the default location.
 
 
-#### Highlight Vim
+#### Vim
 
 To get syntax highlighting is hopefully straightforward,
 create a symbolic link or copy the syntax file into your
@@ -92,7 +90,7 @@ file recognition pattern to your **.vimrc**
     au BufRead,BufNewFile *.kt set filetype=kotlin
 
 
-#### Highlight Nano
+#### Nano
 
 Put this inside your **.nanorc**
 
