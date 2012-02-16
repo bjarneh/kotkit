@@ -1,7 +1,7 @@
 
-    · K O T K I T ·
+     · K O T K I T ·
 
-    kotlin starter kit for non-IDE folks
+    kotlin starter kit
 
 
 This repo contains a small starter-kit for those who want to try out
