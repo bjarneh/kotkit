@@ -10,11 +10,13 @@ Very basic syntax files for [Vim][3] and [Nano][4] are included.
 found inside the **misc** directory. And a script that helps you
 build executables can be found inside the **bin** directory.
 
-   - **misc**: syntax files for [Vim][3] and [Nano][4]
-   - **bin** : a script to help you compile [Kotlin][1]
+#### content
+
+   - **bin/kz** : is a script that helps you compile [Kotlin][1] source
+   - **misc/**: syntax files for [Vim][3] and [Nano][4]
 
 
-#### Compile
+#### compile
 
 Compilation requires that the kotlin compiler has been installed
 naturally, see [kotlin's github page][5] for a howto.
@@ -39,7 +41,7 @@ it must be located somewhere it can be found; i.e. in one of the
 directories pointed to by the `$PATH` variable typically.
 
 
-#### Example
+#### example
 
 Compiling a single file
 
@@ -89,7 +91,7 @@ If source is place inside a directory named `src` as in the example,
 the `src` can be omitted, this is the default location.
 
 
-#### Vim
+#### vim
 
 To get syntax highlighting is hopefully straightforward,
 create a symbolic link or copy the syntax file into your
@@ -100,7 +102,7 @@ file recognition pattern to your **.vimrc**
     au BufRead,BufNewFile *.kt set filetype=kotlin
 
 
-#### Nano
+#### nano
 
 Put this inside your **.nanorc**
 
