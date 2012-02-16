@@ -1,6 +1,8 @@
 
     · K O T K I T ·
 
+    kotlin starter kit for non-IDE folks
+
 
 This repo contains a small starter-kit for those who want to try out
 the [Kotlin][1] language without the [Intellij IDE][2].
@@ -45,7 +47,9 @@ Compiling a single file
      }
 
     $ kz Main.kt -o program
-      built in 4.0 s
+      compiling: Main.kt
+      construct: program
+      time used: 3.4 s
 
     $ ./program
       hello world!
@@ -70,7 +74,10 @@ Compiling a project with multiple files
     }
 
     $ kz -o program src/
-      built in 4.4 s
+      compiling: Main.kt
+      compiling: Hello.kt
+      construct: program
+      time used: 4.4 s
 
     $ ./program
       hello world!

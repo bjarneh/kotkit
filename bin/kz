@@ -38,7 +38,7 @@ $ git checkout https://github.com/JetBrains/kotlin.git
 $ export KOTLIN_GITROOT=$PWD/kotlin
 
 # build kotlin if you haven't already
-$ ant -f update_dependencies.xml && ant -f build.xml
+$ cd kotlin && ant -f update_dependencies.xml && ant -f build.xml
 
 that's it, you should be ready to go
 
@@ -48,8 +48,8 @@ options:
     -h --help       : print this menu and exit
     -v --version    : print version and exit
     -q --quiet      : do not report time used etc..
-    -j --jar        : create jar file (!shell script)
-    -o --output     : name of output (default:a.sh)
+    -j --jar        : create jar file (!bash script)
+    -o --output     : name of output (default:a.bash)
     -d --dryrun     : print what kz would do to stdout
 """
 #_________________________________________________________________________
@@ -71,14 +71,34 @@ defaults['-version']  = False
 defaults['-dryrun']   = False
 defaults['-quiet']    = False
 defaults['-jar']      = None
-defaults['-output']   = "a.sh"
+defaults['-output']   = "a.bash"
 defaults['src']       = "src"
 defaults['libkotlin'] = list()
 defaults['java']      = None
 defaults['CLASSPATH'] = None
 
-shellstub ="""
-#!/bin/sh
+shellstub ="""#!/bin/bash
+
+function die() {
+    echo "$1"
+    exit 1
+}
+
+# Taken from Debian Developers Reference Chapter 6
+function pathfind() {
+     OLDIFS="$IFS"
+     IFS=:
+     for p in $PATH; do
+         if [ -x "$p/$*" ]; then
+             IFS="$OLDIFS"
+             return 0
+         fi
+     done
+     IFS="$OLDIFS"
+     return 1
+}
+
+pathfind "java" || die "[ERROR] could not find: java in \$PATH"
 
 exec java -jar $0 "$@"
             
@@ -199,6 +219,32 @@ def print_dryrun(cmd):
         say("\n[4]\n\nchmod a+rx %s\n\n"%(defaults['-output']))
 
 
+def collect_files(files, dirname, fname):
+    """ report which files we are trying to compile"""
+    for f in fname:
+        if f.endswith(".kt"):
+            files.append(os.path.join(dirname, f))
+
+def print_files():
+    """ print the names of the files to be compiled"""
+
+    if os.path.isfile(defaults['src']):
+        print("compiling: %s"%(defaults['src']))
+
+    elif os.path.isdir(defaults['src']):
+
+        files = []
+        os.path.walk(defaults['src'], collect_files, files)
+
+        strip_len = len(defaults['src'])
+        if not defaults['src'].endswith(os.sep): strip_len += 1
+        for i in range(0, len(files)):
+            files[i] = files[i][strip_len:]
+        for f in files:
+            print("compiling: %s"%(f))
+
+
+
 def kotlin_compile():
     """ compile kotlin source using the KotlinCompiler"""
 
@@ -215,10 +261,18 @@ def kotlin_compile():
     cmd.append(jarfile)
     cmd.append("-src")
     cmd.append(defaults['src'])
+
     if defaults['-dryrun']:
-        print_dryrun(cmd);  return 1
+        print_dryrun(cmd)
+        return 1
+
+    if not defaults['-quiet']: print_files()
+
     fail = subprocess.call(cmd, stdout=sys.stdout, stderr=sys.stderr)
+
     if not fail and (not defaults['-jar']):
+        if not defaults['-quiet']:
+            print("construct: %s"%(defaults['-output']))
         fh_shell = open(defaults['-output'], 'w+b')
         fh_shell.write(shellstub)
         fh_jar   = open(jarfile, 'r')
@@ -228,8 +282,10 @@ def kotlin_compile():
         os.unlink(jarfile)
         os.chmod(defaults['-output'], 0755)
         return 0
-    else:
-        return fail
+
+    if not defaults['-quiet'] and (not fail):
+        print("build jar: %s"%(jarfile))
+    return fail
 
 
 #_________________________________________________________________________
@@ -376,4 +432,4 @@ if __name__ == '__main__':
     if fail: sys.exit(fail)
 
     if not defaults['-quiet'] and (not defaults['-dryrun']):
-        sys.stdout.write("built in %.1f s\n"%(time.time() - t0))
+        sys.stdout.write("time used: %.1f s\n"%(time.time() - t0))
