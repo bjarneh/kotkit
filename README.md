@@ -6,12 +6,11 @@
 
 This repo contains a small starter-kit for those who want to try out
 the [Kotlin][1] language without the [Intellij IDE][2].
-Very basic syntax files for [Vim][3] and [Nano][4] are included.
 
 #### content
 
    - **bin/kz** : is a script that helps you compile [Kotlin][1] source
-   - **misc/**: syntax files for [Vim][3] and [Nano][4]
+   - **misc/**: basic syntax files for [Vim][3] and [Nano][4]
 
 
 #### compile
