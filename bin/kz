@@ -21,9 +21,11 @@
 #
 #
 """
-kz - use the kotlin compiler with ease
+kz - use the kotlin compiler without Intellij
+
 
 usage: kz [OPTIONS]  src-dir || file.kt
+
 
 it will produce an exacutable shell script which
 contains a jar archive with the kotlin runtime
@@ -31,8 +33,8 @@ included. i.e. if all goes well you should be
 able to run your program by running the produced
 shell script.
 
-variable KOTLIN_GITROOT must be set to point
-at the root directory of kotlin, i.e.
+KOTLIN_GITROOT must be set to point at the root 
+directory of kotlin, i.e.
 
 $ git checkout https://github.com/JetBrains/kotlin.git
 $ export KOTLIN_GITROOT=$PWD/kotlin
@@ -181,7 +183,7 @@ def parse_argv(argv):
     p.add_str("-src")
     p.add_str("-module")
     p.add_str("-stdlib")
-    p.add_str("-includeRuntime")
+    p.add_bool("-includeRuntime")
 
     args = p.parse(argv)
 
