@@ -7,8 +7,6 @@
 This repo contains a small starter-kit for those who want to try out
 the [Kotlin][1] language without the [Intellij IDE][2].
 Very basic syntax files for [Vim][3] and [Nano][4] are included.
-found inside the **misc** directory. And a script that helps you
-build executables can be found inside the **bin** directory.
 
 #### content
 
