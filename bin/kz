@@ -266,6 +266,8 @@ def kotlin_compile():
 
     if defaults['-dryrun']:
         print_dryrun(cmd)
+        if not defaults['-jar']:
+            os.unlink(jarfile)
         return 1
 
     if not defaults['-quiet']: print_files()
