@@ -326,6 +326,9 @@ class StrOption(Option):
     def get(self):
         return self.args[0]
 
+    def get_all(self):
+        return self.args
+
 
 class Pyopt(object):
     """ simple command line parser """
@@ -372,6 +375,9 @@ class Pyopt(object):
     
     def get(self, flag):
         return self.options[flag].get()
+
+    def get_all(self, flag):
+        return self.options[flag].get_all()
 
     def is_option(self, opt):
         return opt in self.options.keys()
