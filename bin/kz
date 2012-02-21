@@ -336,24 +336,30 @@ class Pyopt(object):
         self.options = {}
 
     def add_bool(self, flag_str):
+        """ option/flag that does not take argument"""
         flags = flag_str.split()
         b = BoolOption(flags)
         for f in flags:
             self.options[f] = b
 
     def add_str(self, flag_str):
+        """ option/flag that take(s) argument(s)"""
         flags = flag_str.split()
         s = StrOption(flags)
         for f in flags:
             self.options[f] = s
 
     def add_str_fancy(self, flag_str):
+        """ same as add_str but make flag fancy first"""
         fancy = self.make_fancy(flag_str)
         s = StrOption(fancy)
         for f in fancy:
             self.options[f] = s
 
     def make_fancy(self, flag_str):
+        """
+        '-f --flag' => [-f,-f=,-flag,-flag=,--flag,--flag=]
+        """
         flags = flag_str.split()
         fancy_flags = []
         for f in flags:
@@ -403,6 +409,11 @@ class Pyopt(object):
         return rest
 
     def juxta_bool(self, arg):
+        """ 
+        juxta_bool('-abcd') == True
+
+        if '-a','-b','-c' and '-d' are bool options
+        """
         if len(arg) > 2:
             single = list(arg[1:])
             for a in single:
@@ -416,6 +427,11 @@ class Pyopt(object):
             return False
 
     def juxta_str(self, arg):
+        """
+        juxta_str('-flagARG') == True
+
+        if '-flag' is a string option
+        """
         max = 0
         tmp = ""
         for k in self.options.keys():
