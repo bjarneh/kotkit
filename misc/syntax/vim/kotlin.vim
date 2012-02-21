@@ -20,15 +20,15 @@ syn keyword   kotlinKeyword     continue object if try else while do when
 syn keyword   kotlinKeyword     trait import where by get set abstract enum open 
 syn keyword   kotlinKeyword     annotation override private public internal protected 
 syn keyword   kotlinKeyword     catch out vararg inline finally final package
-syn region	  kotlinString      start=+L\="+ skip=+\\\\\|\\"+ end=+"+
+syn region    kotlinString      start=+L\="+ skip=+\\\\\|\\"+ end=+"+
 
 "color brightred "\<[A-Z_][0-9A-Z_]+\>" 
 
 syn case ignore
-syn match   kotlinNumber		 "\<\(0[0-7]*\|0[xX]\x\+\|\d\+\)[lL]\=\>"
-syn match   kotlinNumber		 "\(\<\d\+\.\d*\|\.\d\+\)\([eE][-+]\=\d\+\)\=[fFdD]\="
-syn match   kotlinNumber		 "\<\d\+[eE][-+]\=\d\+[fFdD]\=\>"
-syn match   kotlinNumber		 "\<\d\+\([eE][-+]\=\d\+\)\=[fFdD]\>"
+syn match   kotlinNumber         "\<\(0[0-7]*\|0[xX]\x\+\|\d\+\)[lL]\=\>"
+syn match   kotlinNumber         "\(\<\d\+\.\d*\|\.\d\+\)\([eE][-+]\=\d\+\)\=[fFdD]\="
+syn match   kotlinNumber         "\<\d\+[eE][-+]\=\d\+[fFdD]\=\>"
+syn match   kotlinNumber         "\<\d\+\([eE][-+]\=\d\+\)\=[fFdD]\>"
 syn match   kotlinCharacter      "'[^']*'"
 
 syn case match
