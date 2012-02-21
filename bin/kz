@@ -40,7 +40,7 @@ $ git checkout https://github.com/JetBrains/kotlin.git
 $ export KOTLIN_GITROOT=$PWD/kotlin
 
 # build kotlin if you haven't already
-$ cd kotlin && ant -f update_dependencies.xml && ant -f build.xml
+$ cd kotlin && ant -f update_dependencies.xml && ant
 
 that's it, you should be ready to go
 
