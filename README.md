@@ -98,6 +98,10 @@ file recognition pattern to your **.vimrc**
     au BufRead,BufNewFile *.kt set filetype=kotlin
 
 
+**note** the syntax file (kotlin.vim) is taken from
+the [kotlin-vim][6] github repo.
+
+
 #### nano
 
 Put this inside your **.nanorc**
@@ -110,3 +114,4 @@ Put this inside your **.nanorc**
 [3]: http://vim.org  "Vim homepage"
 [4]: http://www.nano-editor.org/ "Nano homepage"
 [5]: https://github.com/JetBrains/kotlin "Kotlin on github"
+[6]: https://github.com/ignatov/kotlin-vim "Kotlin Vim mode"
