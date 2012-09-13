@@ -419,6 +419,8 @@ class Pyopt(object):
             for a in single:
                 if not self.is_option("-"+a):
                     return False
+                if not type(self.options["-"+a]) == BoolOption:
+                    return False
             # set them all
             for a in single:
                 self.options["-"+a].found = True
